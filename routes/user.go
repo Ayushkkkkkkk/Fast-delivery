@@ -13,6 +13,7 @@ type User struct {
 func UserRoutes(r *gin.Engine) {
 	UserGroup := r.Group("/api/user")
 	UserGroup.POST("/new", CreateUser)
+	UserGroup.GET("/SingleUser/:email", GetUser)
 }
 
 func CreateUser(r *gin.Context) {
@@ -29,7 +30,23 @@ func CreateUser(r *gin.Context) {
 		return
 	}
 	r.JSON(200, gin.H{
-		"message": "User created successfully behen k land",
+		"message": "User created successfully",
 		"user":    user,
 	})
+}
+
+func GetUser(r *gin.Context) {
+	userEmail := r.Param("email")
+
+	var user User
+	err := models.Db.QueryRow("SELECT username, email FROM users WHERE email = ?", userEmail).Scan(&user.Username, &user.Email)
+	if err != nil {
+		r.JSON(404, gin.H{"error": "User not found"})
+		return
+	}
+
+	r.JSON(200, gin.H{
+		"user": user,
+	})
+
 }

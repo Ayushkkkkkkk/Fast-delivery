@@ -6,40 +6,22 @@ import (
 )
 
 type User struct {
-	Username string `json:"username" binding:"required"`
-	Email    string `json:"email" binding:"required"`
+	Name   string `json:"name"`
+	Email  string `json:"email"`
+	Gender string `json:"gender"`
+	DOB    string `json:"dob"`
 }
 
 func UserRoutes(r *gin.Engine) {
 	UserGroup := r.Group("/api/user")
 	UserGroup.POST("/new", CreateUser)
-	UserGroup.GET("/SingleUser/:email", GetUser)
+	UserGroup.GET("/:id", getSingleUser)
 }
 
-func CreateUser(r *gin.Context) {
+func getSingleUser(r *gin.Context) {
+	userId := r.Param("id")
 	var user User
-
-	if err := r.ShouldBindJSON(&user); err != nil {
-		r.JSON(400, gin.H{"error": err.Error()})
-		return
-	}
-
-	_, err := models.Db.Exec("INSERT INTO users (username, email) VALUES (?, ?)", user.Username, user.Email)
-	if err != nil {
-		r.JSON(500, gin.H{"error": "Failed to insert user into database", "E": err, "data": user.Email, "another": user.Username})
-		return
-	}
-	r.JSON(200, gin.H{
-		"message": "User created successfully",
-		"user":    user,
-	})
-}
-
-func GetUser(r *gin.Context) {
-	userEmail := r.Param("email")
-
-	var user User
-	err := models.Db.QueryRow("SELECT username, email FROM users WHERE email = ?", userEmail).Scan(&user.Username, &user.Email)
+	err := models.Db.QueryRow("SELECT username, email FROM users WHERE id = ?", userId).Scan(&user.Name, &user.Email)
 	if err != nil {
 		r.JSON(404, gin.H{"error": "User not found"})
 		return
@@ -49,4 +31,32 @@ func GetUser(r *gin.Context) {
 		"user": user,
 	})
 
+}
+
+func CreateUser(r *gin.Context) {
+	var user User
+	if err := r.ShouldBindJSON(&user); err != nil {
+		r.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	_, err := models.Db.Exec(`
+        INSERT INTO userg ( name, email, gender, dob)
+        VALUES (?, ?, ?, ?)
+    `, user.Name, user.Email, user.Gender, user.DOB)
+
+	if err != nil {
+		r.JSON(201, gin.H{
+			"message": err.Error(),
+		})
+		return
+	}
+
+	r.JSON(200, gin.H{
+		"message": "Sucessfully added the user into the database",
+		"name":    user.Name,
+		"email":   user.Email,
+		"Gender":  user.Gender,
+		"dob":     user.DOB,
+	})
 }
